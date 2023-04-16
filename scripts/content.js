@@ -130,7 +130,9 @@ const calculator = (type, marginRecommend) => {
   })
   inputLimitPrice?.addEventListener('blur', (e) => {
     e.preventDefault()
-    updateSizeAndMargin(inputLimitPrice, inputStopLoss, type, marginRecommend)
+    if (inputLimitPrice.value) {
+      updateSizeAndMargin(inputLimitPrice, inputStopLoss, type, marginRecommend)
+    }
   })
 }
 

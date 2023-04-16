@@ -1,3 +1,8 @@
+const $ = (el) => document.querySelector(el)
+const $$ = (el) => document.querySelectorAll(el)
+
+const MARGIN_BUTTON_QUERY =
+  '.margin-leverage-or-title-row a[data-bn-type="text"]'
 const ORDER_FORM_QUERY = `div[name=orderForm]`
 const INPUT_PRICE_QUERY = `input[id^="limitPrice"]`
 const POSITION_SIZE_QUERY = `input[id^="unitAmount"]`
@@ -16,15 +21,17 @@ const REFRESH_INTERVAL = 500
 
 let orderForm
 
-const getActiveTab = (orderForm, orderTabs) => {
-  const inputs = orderForm.querySelectorAll('input')
+const setInputValue = (inputEl, value) => {
+  inputEl.value = value
+  inputEl.dispatchEvent(new Event('change', { bubbles: true }))
+}
 
+const getActiveTab = (orderTabs) => {
   const activeTab = [...orderTabs].find((tab) => {
     return tab.classList.contains('active')
   })
 
   return {
-    inputsOrder: inputs,
     activeTab
   }
 }
@@ -37,7 +44,8 @@ const calMarginAndSize = (entry, risk, riskPercent, stopLoss) => {
   }
 }
 
-const setMargin = (element, margin, marginRecommend, sizeInput, size) => {
+const setMargin = (marginParam) => {
+  const { element, margin, marginRecommend, sizeInput, size } = marginParam
   // Open popup
   element.click()
 
@@ -50,11 +58,9 @@ const setMargin = (element, margin, marginRecommend, sizeInput, size) => {
       marginRatio[marginRatio.length - 1].textContent.replace('x', '')
     )
 
-    marginRecommend.innerHTML = `Recommend <span style="color: rgb(246, 70, 93); font-weight: 700;">${margin}</span>`
     marginInputContainer.insertAdjacentElement('beforebegin', marginRecommend)
 
-    marginInput.value = margin
-    marginInput.dispatchEvent(new Event('change', { bubbles: true }))
+    setInputValue(marginInput, margin)
 
     setTimeout(() => {
       if (maxMargin >= margin) {
@@ -64,78 +70,115 @@ const setMargin = (element, margin, marginRecommend, sizeInput, size) => {
 
     confirmButton.addEventListener('click', () => {
       setTimeout(() => {
-        sizeInput.value = size
-        sizeInput.dispatchEvent(new Event('change', { bubbles: true }))
+        setInputValue(sizeInput, size)
       }, 1000)
     })
   }, POPUP_LOADING_TIMEOUT)
 }
 
-const listenOrderForm = (orderInputs) => {
-  const { inputsOrder, activeTab, setMarginEl } = orderInputs
-
-  console.log(inputsOrder, 'inputsOrder ', activeTab)
+const updateSizeAndMargin = (inputLimitPrice, inputStopLoss, type) => {
+  const lastPrice = $(LAST_PRICE_QUERY)
   const marginRecommend = document.createElement('div')
-  const sizeInput = inputsOrder[1]
+  const sizeInput = $(POSITION_SIZE_QUERY)
+  const marginBtn = $$(MARGIN_BUTTON_QUERY)
+  const currMargin = parseInt(marginBtn[1].textContent.replace('x', ''))
 
-  if (activeTab.getAttribute('date-testid') === 'limit') {
-    console.log('limit')
-    // inputsOrder[4].addEventListener('input', (e) => {
-    //   sizeInput.value = size
-    //   sizeInput.dispatchEvent(new Event('change', { bubbles: true }))
-    // })
+  const entry =
+    type === 'limit'
+      ? inputLimitPrice.value.replace(',', '.')
+      : parseInt(lastPrice.textContent)
+  const stopLoss = inputStopLoss.value.replace(',', '.')
 
-    inputsOrder[4].addEventListener('blur', () => {
-      const entry = inputsOrder[0].value.replace(',', '.')
-      const stopLoss = inputsOrder[4].value.replace(',', '.')
-      const risk = parseInt(document.querySelector('#max-risk')?.value) || 5
-      const riskPercent =
-        parseInt(document.querySelector('#max-risk-percent')?.value) / 100 ||
-        0.5
+  const risk = parseInt($('#max-risk')?.value) || 5
+  const riskPercent = parseInt($('#max-risk-percent')?.value) / 100 || 0.5
 
-      const { margin, size } = calMarginAndSize(
-        entry,
-        risk,
-        riskPercent,
-        stopLoss
-      )
+  const { margin, size } = calMarginAndSize(entry, risk, riskPercent, stopLoss)
 
-      setMargin(setMarginEl[1], margin, marginRecommend, sizeInput, size)
-      console.log(margin, 'margin')
+  console.log('Margin: ', margin, '\nSize: ', size)
+
+  setInputValue(sizeInput, size)
+
+  if (currMargin !== margin) {
+    marginRecommend.innerHTML = `Recommend <span style="color: rgb(246, 70, 93); font-weight: 700;">${margin}</span>`
+
+    setMargin({
+      element: marginBtn[1],
+      margin,
+      marginRecommend,
+      sizeInput,
+      size
     })
   }
 }
 
+const calculator = (type) => {
+  const inputStopLoss = $(STOP_LOSS_QUERY)
+  const inputLimitPrice = $(INPUT_PRICE_QUERY)
+
+  // if (inputStopLoss.value) {
+  //   updateSizeAndMargin(inputLimitPrice, inputStopLoss, type)
+  // }
+
+  inputStopLoss?.addEventListener('blur', (e) => {
+    e.preventDefault()
+    updateSizeAndMargin(inputLimitPrice, inputStopLoss, type)
+  })
+  inputLimitPrice?.addEventListener('blur', (e) => {
+    e.preventDefault()
+    updateSizeAndMargin(inputLimitPrice, inputStopLoss, type)
+  })
+}
+
+let tabInterval
+const listenOrderForm = (orderInputs) => {
+  const { activeTab } = orderInputs
+  const tab = activeTab.getAttribute('date-testid')
+  clearInterval(tabInterval)
+
+  const calTab = {
+    limit: () => {
+      // tabInterval = setInterval(() => {
+      calculator('limit')
+      // }, 1000)
+    },
+    market: () => {
+      tabInterval = setInterval(() => {
+        calculator('market')
+      }, 1000)
+    }
+  }
+
+  calTab[tab]()
+}
+
+const addRiskForm = () => {
+  const riskForm = document.createElement('div')
+  const parentRiskForm = document.querySelector('div[name="orderbook"]')
+
+  riskForm.innerHTML = `<div style="background: #800303; position: absolute; top: 0; left: 0; width: calc(100% - 20px); z-index: 1;flex-direction: column; padding: 10px">
+    <div style="outline: none; color: white; display: flex; justify-content: space-between; margin-bottom: 5px;">Risk <input id="max-risk" style="width: 100px;" value="5"/></div>
+    <div style="outline: none; color: white; display: flex; justify-content: space-between;">Percent (%) <input id="max-risk-percent" style="width: 100px;" value="25"/></div>
+  </div>`
+
+  parentRiskForm.append(riskForm)
+}
+
 const main = (orderForm) => {
   if (orderForm) {
-    const setMarginEl = orderForm.querySelectorAll(
-      '.margin-leverage-or-title-row a[data-bn-type="text"]'
-    )
     const orderTabs = orderForm.querySelectorAll('.order-tabs .tab')
-    const riskForm = document.createElement('div')
-    const parentRiskForm = document.querySelector('div[name="orderbook"]')
+    addRiskForm()
 
-    riskForm.innerHTML = `<div style="background: #800303; position: absolute; top: 0; left: 0; width: calc(100% - 20px); z-index: 1;flex-direction: column; padding: 10px">
-      <div style="outline: none; color: white; display: flex; justify-content: space-between; margin-bottom: 5px;">Risk <input id="max-risk" style="width: 100px;" value="5"/></div>
-      <div style="outline: none; color: white; display: flex; justify-content: space-between;">Percent (%) <input id="max-risk-percent" style="width: 100px;" value="25"/></div>
-    </div>`
+    let { activeTab } = getActiveTab(orderTabs)
 
-    parentRiskForm.append(riskForm)
-
-    let { inputsOrder, activeTab } = getActiveTab(orderForm, orderTabs)
-    listenOrderForm({ inputsOrder, activeTab, setMarginEl })
+    listenOrderForm({ activeTab })
 
     orderTabs.forEach((tab) => {
       tab.addEventListener('click', () => {
         setTimeout(() => {
-          let { inputsOrder: inputsOrderNew, activeTab: activeTabNew } =
-            getActiveTab(orderForm, orderTabs)
+          let { activeTab: newActiveTab } = getActiveTab(orderTabs)
+          console.log(newActiveTab, 'activeTab')
 
-          listenOrderForm({
-            inputsOrder: inputsOrderNew,
-            activeTab: activeTabNew,
-            setMarginEl
-          })
+          listenOrderForm({ activeTab: newActiveTab })
         }, TAB_LOADING_TIMEOUT)
       })
     })
@@ -145,7 +188,7 @@ const main = (orderForm) => {
 }
 
 const interval = setInterval(() => {
-  orderForm = document.querySelector('div[name="orderForm"]')
+  orderForm = document.querySelector(ORDER_FORM_QUERY)
   setTimeout(() => {
     main()
   }, PAGE_LOADING)

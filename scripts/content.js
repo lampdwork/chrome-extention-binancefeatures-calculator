@@ -89,12 +89,14 @@ const updateSizeAndMargin = (
 
   const entry =
     type === 'limit'
-      ? inputLimitPrice.value.replace(',', '.')
-      : parseInt(lastPrice.textContent)
+      ? parseFloat(inputLimitPrice.value.replace(',', '.'))
+      : parseFloat(lastPrice.textContent.replace(',', '.'))
   const stopLoss = inputStopLoss.value.replace(',', '.')
 
-  const risk = parseInt($('#max-risk')?.value) || 5
-  const riskPercent = parseInt($('#max-risk-percent')?.value) / 100 || 0.5
+  console.log(entry, 'entry', stopLoss, 'stopLoss')
+
+  const risk = parseFloat($('#max-risk')?.value) || 5
+  const riskPercent = parseFloat($('#max-risk-percent')?.value) / 100 || 0.5
 
   const { margin, size } = calMarginAndSize(entry, risk, riskPercent, stopLoss)
 

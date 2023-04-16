@@ -13,6 +13,8 @@ const UOM_QUERY = `label[data-testid='unit-select-button']`
 const LAST_PRICE_QUERY = `.ticker-wrap .draggableHandle`
 const TAB_MARKET_QUERY = `#tab-MARKET > .active`
 const TAB_LIMIT_QUERY = `#tab-LIMIT > .active`
+const RISK_QUERY = '#max-risk'
+const RISK_PERCENT_QUERY = '#max-risk-percent'
 
 const TAB_LOADING_TIMEOUT = 1000
 const POPUP_LOADING_TIMEOUT = 500
@@ -95,8 +97,11 @@ const updateSizeAndMargin = (
 
   console.log(entry, 'entry', stopLoss, 'stopLoss')
 
-  const risk = parseFloat($('#max-risk')?.value) || 5
-  const riskPercent = parseFloat($('#max-risk-percent')?.value) / 100 || 0.5
+  const risk = parseFloat($(RISK_QUERY)?.value) || 5
+  const riskPercent = parseFloat($(RISK_PERCENT_QUERY)?.value) / 100 || 0.5
+
+  localStorage.setItem('risk', risk)
+  localStorage.setItem('riskPercent', riskPercent * 100)
 
   const { margin, size } = calMarginAndSize(entry, risk, riskPercent, stopLoss)
 
@@ -178,6 +183,12 @@ const main = (orderForm) => {
   if (orderForm) {
     const orderTabs = orderForm.querySelectorAll('.order-tabs .tab')
     addRiskForm()
+
+    const riskInput = $(RISK_QUERY)
+    const riskPercentInput = $(RISK_PERCENT_QUERY)
+
+    riskInput.defaultValue = localStorage?.getItem('risk') || 5
+    riskPercentInput.defaultValue = localStorage?.getItem('riskPercent') || 25
 
     let { activeTab } = getActiveTab(orderTabs)
 

@@ -1,3 +1,14 @@
+const ORDER_FORM_QUERY = `div[name=orderForm]`
+const INPUT_PRICE_QUERY = `input[id^="limitPrice"]`
+const POSITION_SIZE_QUERY = `input[id^="unitAmount"]`
+const TAKE_PROFIT_QUERY = `input[id^="takeProfitStopPrice"]`
+const STOP_LOSS_QUERY = `input[id^="stopLossStopPrice"]`
+const LAST_PRICE_BTN_QUERY = `div[data-bn-type='text']`
+const UOM_QUERY = `label[data-testid='unit-select-button']`
+const LAST_PRICE_QUERY = `.ticker-wrap .draggableHandle`
+const TAB_MARKET_QUERY = `#tab-MARKET > .active`
+const TAB_LIMIT_QUERY = `#tab-LIMIT > .active`
+
 const TAB_LOADING_TIMEOUT = 1000
 const POPUP_LOADING_TIMEOUT = 500
 const PAGE_LOADING = 5000

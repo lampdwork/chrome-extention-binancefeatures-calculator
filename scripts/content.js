@@ -51,7 +51,7 @@ const setMargin = (marginParam) => {
 
   setTimeout(() => {
     const marginInputContainer = document.querySelector('.leverage-container')
-    const marginInput = marginInputContainer.querySelector('input')
+    const marginInput = $('.leverage-container input')
     const marginRatio = document.querySelectorAll('.bn-slider-scale')
     const confirmButton = document.querySelector('.footer > button')
     const maxMargin = parseInt(
@@ -76,9 +76,13 @@ const setMargin = (marginParam) => {
   }, POPUP_LOADING_TIMEOUT)
 }
 
-const updateSizeAndMargin = (inputLimitPrice, inputStopLoss, type) => {
+const updateSizeAndMargin = (
+  inputLimitPrice,
+  inputStopLoss,
+  type,
+  marginRecommend
+) => {
   const lastPrice = $(LAST_PRICE_QUERY)
-  const marginRecommend = document.createElement('div')
   const sizeInput = $(POSITION_SIZE_QUERY)
   const marginBtn = $$(MARGIN_BUTTON_QUERY)
   const currMargin = parseInt(marginBtn[1].textContent.replace('x', ''))
@@ -96,11 +100,12 @@ const updateSizeAndMargin = (inputLimitPrice, inputStopLoss, type) => {
 
   console.log('Margin: ', margin, '\nSize: ', size)
 
-  setInputValue(sizeInput, size)
+  if (size > 0) {
+    setInputValue(sizeInput, size)
+  }
 
   if (currMargin !== margin) {
     marginRecommend.innerHTML = `Recommend <span style="color: rgb(246, 70, 93); font-weight: 700;">${margin}</span>`
-
     setMargin({
       element: marginBtn[1],
       margin,
@@ -111,26 +116,28 @@ const updateSizeAndMargin = (inputLimitPrice, inputStopLoss, type) => {
   }
 }
 
-const calculator = (type) => {
+const calculator = (type, marginRecommend) => {
   const inputStopLoss = $(STOP_LOSS_QUERY)
   const inputLimitPrice = $(INPUT_PRICE_QUERY)
 
   // if (inputStopLoss.value) {
-  //   updateSizeAndMargin(inputLimitPrice, inputStopLoss, type)
+  //   updateSizeAndMargin(inputLimitPrice, inputStopLoss, type, marginRecommend)
   // }
 
   inputStopLoss?.addEventListener('blur', (e) => {
     e.preventDefault()
-    updateSizeAndMargin(inputLimitPrice, inputStopLoss, type)
+    updateSizeAndMargin(inputLimitPrice, inputStopLoss, type, marginRecommend)
   })
   inputLimitPrice?.addEventListener('blur', (e) => {
     e.preventDefault()
-    updateSizeAndMargin(inputLimitPrice, inputStopLoss, type)
+    updateSizeAndMargin(inputLimitPrice, inputStopLoss, type, marginRecommend)
   })
 }
 
 let tabInterval
 const listenOrderForm = (orderInputs) => {
+  const marginRecommend = document.createElement('div')
+
   const { activeTab } = orderInputs
   const tab = activeTab.getAttribute('date-testid')
   clearInterval(tabInterval)
@@ -138,13 +145,13 @@ const listenOrderForm = (orderInputs) => {
   const calTab = {
     limit: () => {
       // tabInterval = setInterval(() => {
-      calculator('limit')
+      calculator('limit', marginRecommend)
       // }, 1000)
     },
     market: () => {
-      tabInterval = setInterval(() => {
-        calculator('market')
-      }, 1000)
+      // tabInterval = setInterval(() => {
+      calculator('market', marginRecommend)
+      // }, 1000)
     }
   }
 
